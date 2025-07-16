@@ -2,6 +2,26 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+
+import sqlite3
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Connect to the SQLite DB
+conn = sqlite3.connect("mediscan.db")
+
+# Load tables into dataframes
+df = pd.read_sql("SELECT * FROM diseases", conn)
+description_data = pd.read_sql("SELECT * FROM descriptions", conn)
+precaution_data = pd.read_sql("SELECT * FROM precautions", conn)
+severity_data = pd.read_sql("SELECT * FROM symptoms", conn)
+
+# (your prediction logic remains unchanged after this point)
+
+
+
+
 # ---------------------------
 # Step 1: Load Data
 # ---------------------------
