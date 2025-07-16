@@ -1,4 +1,4 @@
-from flask import Flask, app, request, jsonify
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from symptoms import predict_disease
 import os
