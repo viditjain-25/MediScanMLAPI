@@ -1,5 +1,4 @@
 Symptom,Severity
-Symptom,weight
 itching,1
 skin_rash,3
 nodal_skin_eruptions,4
@@ -9,6 +8,7 @@ chills,3
 joint_pain,3
 stomach_pain,5
 acidity,3
+Symptom,weight
 ulcers_on_tongue,4
 muscle_wasting,3
 vomiting,5
