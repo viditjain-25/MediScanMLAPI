@@ -1,0 +1,15 @@
+# Ignore Python cache
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environment
+venv/
+
+# Ignore Jupyter checkpoints (if used)
+.ipynb_checkpoints/
+
+# Ignore OS files
+.DS_Store
+
+# Ignore CSV backups
+*.bak
