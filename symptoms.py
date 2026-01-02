@@ -1,14 +1,18 @@
+import os
 import sqlite3
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# ---------------------
-# 1. Connect & Load Data
-# ---------------------
-conn = sqlite3.connect("mediscan.db")
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "mediscan.db")
+
+conn = sqlite3.connect(DB_PATH)
 df = pd.read_sql("SELECT * FROM diseases", conn)
+
+
+
 description_data = pd.read_sql("SELECT * FROM descriptions", conn)
 precaution_data = pd.read_sql("SELECT * FROM precautions", conn)
 severity_data = pd.read_sql("SELECT * FROM symptoms", conn)
@@ -25,8 +29,19 @@ severity_data["Symptom"] = severity_data["Symptom"].str.lower()
 symptom_cols = [col for col in df.columns if col.lower().startswith("symptom")]
 precaution_cols = [col for col in precaution_data.columns if col.lower().startswith("precaution")]
 
-df["all_symptoms"] = df[symptom_cols].fillna("").apply(lambda x: " ".join(x), axis=1).str.lower()
-precaution_data["all_Precaution"] = precaution_data[precaution_cols].fillna("").apply(lambda x: " ".join(x), axis=1).str.lower()
+df["all_symptoms"] = (
+    df[symptom_cols]
+    .fillna("")
+    .apply(lambda x: " ".join(x), axis=1)
+    .str.lower()
+)
+
+precaution_data["all_Precaution"] = (
+    precaution_data[precaution_cols]
+    .fillna("")
+    .apply(lambda x: " ".join(x), axis=1)
+    .str.lower()
+)
 
 vectorizer = TfidfVectorizer()
 tfidf_matrix = vectorizer.fit_transform(df["all_symptoms"])
@@ -59,9 +74,14 @@ def predict_disease(user_input, top_n=4):
     if not user_input:
         return []
 
-    user_symptoms = [s.strip().lower().replace(" ", "_") for s in user_input.split(",") if s.strip()]
-    expanded = expand_symptoms(user_symptoms)
+    # Clean user input
+    user_symptoms = [
+        s.strip().lower().replace(" ", "_")
+        for s in user_input.split(",")
+        if s.strip()
+    ]
 
+    expanded = expand_symptoms(user_symptoms)
     if not expanded:
         return []
 
@@ -77,10 +97,14 @@ def predict_disease(user_input, top_n=4):
 
         row = df.iloc[idx]
         disease = row["Disease"]
-        known = [str(row[col]).strip().lower() for col in symptom_cols if pd.notna(row[col])]
+
+        known = [
+            str(row[col]).strip().lower()
+            for col in symptom_cols
+            if pd.notna(row[col])
+        ]
 
         matches = set(sym for sym in expanded if sym in known)
-        non_matches = set(expanded) - matches
 
         if disease not in disease_scores:
             disease_scores[disease] = {
@@ -92,7 +116,10 @@ def predict_disease(user_input, top_n=4):
 
         disease_scores[disease]["score"] += len(matches)
         disease_scores[disease]["matching"].update(matches)
+
+        # ✅ Non-matching symptoms logic
         disease_scores[disease]["non_matching"].difference_update(matches)
+
         disease_scores[disease]["rows"].append(idx)
 
     results = []
@@ -101,8 +128,17 @@ def predict_disease(user_input, top_n=4):
         precaution_row = precaution_data[precaution_data["Disease"] == disease]
         severity_match = severity_data[severity_data["Symptom"].isin(info["matching"])]
 
-        description = desc_row["Description"].values[0] if not desc_row.empty else "No description available."
-        precaution = precaution_row["all_Precaution"].values[0] if not precaution_row.empty else "No precautions available."
+        description = (
+            desc_row["Description"].values[0]
+            if not desc_row.empty
+            else "No description available."
+        )
+
+        precaution = (
+            precaution_row["all_Precaution"].values[0]
+            if not precaution_row.empty
+            else "No precautions available."
+        )
 
         if not severity_match.empty:
             avg = severity_match["Severity"].astype(int).mean()
@@ -121,8 +157,10 @@ def predict_disease(user_input, top_n=4):
             "score": info["score"]
         })
 
+    # ---------------------
+    # 5. Fallback Case
+    # ---------------------
     if not results:
-        # Fallback: Return most similar row even if no direct match
         best_idx = similarity.argmax()
         fallback_disease = df.iloc[best_idx]["Disease"]
 
